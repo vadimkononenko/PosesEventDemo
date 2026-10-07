@@ -215,7 +215,15 @@ struct ChooseMediaButton: View {
         Button {
             isPresented = true
         } label: {
-            Label(title, systemImage: systemImage)
+            // SF Symbols have different heights (photo.on.rectangle is taller than
+            // video.badge.plus), so the icon gets a fixed box: every button is the same height.
+            Label {
+                Text(title)
+            } icon: {
+                Image(systemName: systemImage)
+                    .frame(width: 24, height: 20)
+            }
         }
+        .controlSize(.large)
     }
 }

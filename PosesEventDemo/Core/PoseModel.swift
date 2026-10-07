@@ -35,7 +35,6 @@ struct DetectedPose: Codable, Hashable, Identifiable {
     let landmarks: [PoseLandmark]
     /// Empty unless the engine was asked for hands. At most one per side.
     var hands: [DetectedHand] = []
-
     // fast access to landmark based on joint
     subscript(joint: PoseJoint) -> PoseLandmark? {
         landmarks.first { $0.joint == joint }

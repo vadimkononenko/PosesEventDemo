@@ -15,10 +15,7 @@ struct LimitationDetailView: View {
                     .task {
                         guard viewModel.image == nil else { return }
                         // Reading the file off the main thread keeps the push animation smooth.
-                        let image = await Task.detached(priority: .userInitiated) {
-                            UIImage(contentsOfFile: url.path)
-                        }.value
-                        if let image { viewModel.setImage(image) }
+                        if let image = await Self.loadImage(at: url) { viewModel.setImage(image) }
                     }
             } else {
                 ContentUnavailableView("File not found",
@@ -42,6 +39,11 @@ struct LimitationDetailView: View {
                 }
             }
         }
+    }
+
+    @concurrent
+    private nonisolated static func loadImage(at url: URL) async -> UIImage? {
+        UIImage(contentsOfFile: url.path)
     }
 
     private var hint: some View {

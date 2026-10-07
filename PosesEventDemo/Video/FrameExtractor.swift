@@ -2,7 +2,7 @@ import AVFoundation
 import CoreImage
 
 /// A sampled frame, already rotated to how the user sees the video.
-nonisolated struct ExtractedFrame: @unchecked Sendable {
+nonisolated struct ExtractedFrame: Sendable {
     let index: Int
     /// Presentation time in the video, seconds.
     let time: TimeInterval

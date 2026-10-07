@@ -6,6 +6,13 @@ import UIKit
 /// then the milliseconds shown to the audience are not distorted by two engines
 /// competing for the CPU.
 actor VideoAnalysisManager {
+    enum Event: Sendable {
+        /// After every analyzed frame.
+        case progress(VideoAnalysisProgress)
+        /// The last event: the whole result.
+        case finished(VideoAnalysisResult)
+    }
+
     enum AnalysisError: LocalizedError {
         case alreadyInProgress
 
@@ -19,9 +26,31 @@ actor VideoAnalysisManager {
     private var frames: [FrameAnalysis] = []
     private var isAnalyzing = false
 
-    func analyze(video: ImportedVideo,
-                 configuration: AnalysisConfiguration,
-                 onProgress: @Sendable (VideoAnalysisProgress) async -> Void) async throws -> VideoAnalysisResult {
+    /// The analysis as a stream: `.progress` for every frame, then `.finished`.
+    /// When the consumer stops iterating (its task is cancelled), the analysis is cancelled too.
+    nonisolated func analyze(video: ImportedVideo,
+                             configuration: AnalysisConfiguration) -> AsyncThrowingStream<Event, Error> {
+        let (stream, continuation) = AsyncThrowingStream.makeStream(of: Event.self)
+
+        let task = Task {
+            do {
+                let result = try await run(video: video, configuration: configuration, events: continuation)
+                continuation.yield(.finished(result))
+                continuation.finish()
+            } catch {
+                continuation.finish(throwing: error)
+            }
+        }
+        continuation.onTermination = { _ in
+            task.cancel()
+            Task { await self.cancel() }
+        }
+        return stream
+    }
+
+    private func run(video: ImportedVideo,
+                     configuration: AnalysisConfiguration,
+                     events: AsyncThrowingStream<Event, Error>.Continuation) async throws -> VideoAnalysisResult {
         guard !isAnalyzing else { throw AnalysisError.alreadyInProgress }
         isAnalyzing = true
         frames.removeAll(keepingCapacity: true)
@@ -39,9 +68,9 @@ actor VideoAnalysisManager {
 
             let analysis = try await self.analyze(frame)
             let count = await self.store(analysis)
-            await onProgress(VideoAnalysisProgress(fractionCompleted: frame.progress,
-                                                   analyzedFrameCount: count,
-                                                   latest: analysis))
+            events.yield(.progress(VideoAnalysisProgress(fractionCompleted: frame.progress,
+                                                         analyzedFrameCount: count,
+                                                         latest: analysis)))
         }
 
         try Task.checkCancellation()

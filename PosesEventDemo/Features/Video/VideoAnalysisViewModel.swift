@@ -9,6 +9,7 @@ final class VideoAnalysisViewModel {
 
     @ObservationIgnored private var analysisTask: Task<Void, Never>?
     @ObservationIgnored private var playbackController: VideoPlaybackController?
+    @ObservationIgnored private var playbackTask: Task<Void, Never>?
 
     private(set) var state: VideoAnalysisViewState = .empty
 
@@ -18,6 +19,7 @@ final class VideoAnalysisViewModel {
 
     isolated deinit {
         analysisTask?.cancel()
+        playbackTask?.cancel()
     }
 
     // MARK: Choosing a video
@@ -62,12 +64,14 @@ final class VideoAnalysisViewModel {
             guard let self else { return }
 
             do {
-                let result = try await analysisManager.analyze(video: video,
-                                                               configuration: selectedConfiguration) { [weak self] progress in
-                    await self?.receive(progress)
+                for try await event in analysisManager.analyze(video: video, configuration: selectedConfiguration) {
+                    switch event {
+                    case .progress(let progress): receive(progress)
+                    case .finished(let result): complete(with: result)
+                    }
                 }
-                try Task.checkCancellation()
-                complete(with: result)
+                // A cancelled consumer just leaves the loop, without an error.
+                if Task.isCancelled { transitionToCancelled() }
             } catch is CancellationError {
                 transitionToCancelled()
             } catch {
@@ -158,8 +162,11 @@ private extension VideoAnalysisViewModel {
 private extension VideoAnalysisViewModel {
     func configurePlayback(for video: ImportedVideo) -> VideoSession {
         let controller = VideoPlaybackController(video: video)
-        controller.onStateChange = { [weak self] playback in
-            self?.receive(playback)
+        playbackTask?.cancel()
+        playbackTask = Task { [weak self, states = controller.states] in
+            for await playback in states {
+                self?.receive(playback)
+            }
         }
         playbackController = controller
 
@@ -175,6 +182,8 @@ private extension VideoAnalysisViewModel {
         await analysisManager.cancel()
         await currentTask?.value
 
+        playbackTask?.cancel()
+        playbackTask = nil
         playbackController = nil
     }
 }

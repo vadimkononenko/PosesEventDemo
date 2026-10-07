@@ -12,13 +12,13 @@ nonisolated struct VisionPose3DDetector {
         let clock = ContinuousClock()
         let start = clock.now
 
-        let people = try await Task.detached(priority: .userInitiated) {
-            try await Self.performRequest(on: cgImage, orientation: orientation)
-        }.value
+        let people = try await Self.performRequest(on: cgImage, orientation: orientation)
 
         return Pose3DResult(people: people, duration: start.duration(to: clock.now).timeInterval)
     }
 
+    /// `@concurrent`: always off the caller's actor, so the main thread is never blocked.
+    @concurrent
     private static func performRequest(on cgImage: CGImage,
                                        orientation: CGImagePropertyOrientation) async throws -> [Pose3DPerson] {
         let request = DetectHumanBodyPose3DRequest()
