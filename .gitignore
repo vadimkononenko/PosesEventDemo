@@ -1,0 +1,60 @@
+# ---------------------------------------------------------------
+# PosesEventDemo: Xcode + CocoaPods (ML Kit)
+# ---------------------------------------------------------------
+
+# --- macOS ---
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# --- CocoaPods ---
+# Pods/ is ~100 MB (ML Kit binaries) and is restored by `pod install`.
+# Podfile and Podfile.lock ARE committed: the lock pins the exact versions.
+Pods/
+
+# --- Xcode: build products ---
+build/
+DerivedData/
+*.xcarchive
+*.ipa
+*.dSYM.zip
+*.dSYM
+*.app
+
+# --- Xcode: personal settings of each developer ---
+# (open tabs, breakpoints, scheme order). The shared scheme and
+# project.pbxproj are committed.
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.moved-aside
+*.hmap
+*.xcscmblueprint
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+timeline.xctimeline
+playground.xcworkspace
+
+# --- Swift Package Manager ---
+# The workspace keeps a swiftpm folder in xcshareddata, it is kept.
+.build/
+.swiftpm/
+**/xcshareddata/swiftpm/configuration/
+
+# --- Fastlane (if added later) ---
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# --- Claude Code: local, per-machine settings ---
+.claude/settings.local.json
+
+# --- Editors and logs ---
+.idea/
+.vscode/
+*.swp
+*~
+*.log
